@@ -1,6 +1,6 @@
 # Install Libraris
-# !pip install textblob
-# !pip install tweepy
+!pip install textblob
+!pip install tweepy
 In [1]:
 # Import Libraries
 from textblob import TextBlob
@@ -9,10 +9,11 @@ import tweepy
 import matplotlib.pyplot as plt
 In [4]:
 # Authentication Keys
-consumerKey = ""
-consumerSecret = ""
-accessToken = ""
-accessTokenSecret = ""
+consumerKey = "Ggzdv3pHsuIM9ExNgReF6s9G9"
+consumerSecret = "5Ri8bZqUjmiU2LGBZRyhlew4wYheJ36Zgk2fn6OGMaB1ZBXf6X
+"
+accessToken = "1278718386143399936-q5t65x4HKSEvvwGVHpvOdX9JCA0GGM"
+accessTokenSecret = "zbWsbeWqT9XTGpHn5prfq6UmMcGcPLd6CltKAJ8fi3daH"
 
 
 auth = tweepy.OAuthHandler(consumerKey, consumerSecret)
@@ -24,8 +25,8 @@ In [19]:
 def percentage(part,whole):
     return 100 * float(part)/float(whole) 
 
-keyword = input("Please enter keyword or hashtag to search: ")
-noOfTweet = int(input ("Please enter how many tweets to analyze: "))
+keyword = input("Ethereum")
+noOfTweet = int(input ("400"))
 
 tweets = tweepy.Cursor(api.search, q=keyword).items(noOfTweet)
 
