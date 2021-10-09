@@ -1,8 +1,9 @@
-# Install Libraris
+# Install Tools 
 !pip install textblob
 !pip install tweepy
-In [1]:
-# Import Libraries
+!pip install langdetect
+nltk.download('vader_lexicon')
+# Import All Tools and download lexicon 
 from textblob import TextBlob
 import sys
 import tweepy
@@ -11,79 +12,126 @@ import pandas as pd
 import numpy as np
 import os
 import nltk
-import pycountry
 import re
 import string
-from wordcloud import WordCloud, STOPWORDS
 from PIL import Image
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from langdetect import detect
 from nltk.stem import SnowballStemmer
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from sklearn.feature_extraction.text import CountVectorizer
-In [4]:
 # Authentication Keys
-consumerKey = "Ggzdv3pHsuIM9ExNgReF6s9G9"
-consumerSecret = "5Ri8bZqUjmiU2LGBZRyhlew4wYheJ36Zgk2fn6OGMaB1ZBXf6X
-"
-accessToken = "1278718386143399936-q5t65x4HKSEvvwGVHpvOdX9JCA0GGM"
-accessTokenSecret = "zbWsbeWqT9XTGpHn5prfq6UmMcGcPLd6CltKAJ8fi3daH"
+consumerKey = "Ggzdv3pHsuIM9ExNgReF6s9G9"   # enter your own credentials
+consumerSecret = "5Ri8bZqUjmiU2LGBZRyhlew4wYheJ36Zgk2fn6OGMaB1ZBXf6X"  # enter your own credentials
+
+accessToken = "1278718386143399936-q5t65x4HKSEvvwGVHpvOdX9JCA0GGM"    # enter your own credentials
+accessTokenSecret = "zbWsbeWqT9XTGpHn5prfq6UmMcGcPLd6CltKAJ8fi3daH"    # enter your own credentials
 
 
-auth = tweepy.OAuthHandler(consumerKey, consumerSecret)
+auth = tweepy.OAuthHandler(consumerKey, consumerSecret) 
 auth.set_access_token(accessToken, accessTokenSecret)
 api = tweepy.API(auth)
-In [19]:
-#Sentiment Analysis
+# First Sentiment Analysis of basic uncleaned text 
 
-def percentage(part,whole):
-    return 100 * float(part)/float(whole) 
 
-keyword = input("Ethereum")
-noOfTweet = int(input ("400"))
+crypto = input("Enter the crypto you want to search:")
+tweetnum = int(input ("How many tweets do you want to examine:"))
 
-tweets = tweepy.Cursor(api.search, q=keyword).items(noOfTweet)
+tweets = tweepy.Cursor(api.search, q=crypto).items(tweetnum)
 
 positive  = 0
 negative = 0
 neutral = 0
 polarity = 0
+tweet_list = []
 
 for tweet in tweets:
-    #print(tweet.text)
+
+    tweet_list.append(tweet.text)  # transfer all text into variable tweet list
     analysis = TextBlob(tweet.text)
+    score = SentimentIntensityAnalyzer().polarity_scores(tweet.text)
     polarity += analysis.sentiment.polarity
     
-    if (analysis.sentiment.polarity == 0):
-        neutral += 1
-        #print(analysis)
-    
-    elif (analysis.sentiment.polarity < 0.00):
-        negative += 1
-        print(analysis)
-    
-    elif (analysis.sentiment.polarity > 0.00):
+    indivpolar= analysis.sentiment.polarity
+    if (indivpolar > 0.00):
         positive += 1
-        #print(analysis)
+    
+    elif (indivpolar < 0.00):
+        negative += 1
+       
+    else:       # individual polarity =0.00   
+        neutral += 1   #3
+        
+ 
+positive = 100*(positive/tweetnum)
+negative = 100*(negative/tweetnum)
+neutral = 100*(neutral/tweetnum)
+polarity = 100*(polarity/tweetnum)
+positivenumber= (positive*(tweetnum/100))
+neutralnumber = (neutral*(tweetnum/100))
+negativenumber= (negative*(tweetnum/100))
+#Number of Tweets (Total, Positive, Negative, Neutral)
+totalnumber=tweetnum
+print("Initial total number is", totalnumber)
+print("Initial positive number is", positivenumber)
+print("Initial neutral number is", neutralnumber)
+print("Initial negative number is", negativenumber)
+#Cleaning Text (RT, Punctuation etc)
+#Creating new dataframe and new features
+df = pd.DataFrame(tweet_list, columns =['initial text'])
+df['cleaned text']= df['initial text']
+#Removing RT, Punctuation etc
+clean_tweets = []
+for tweet in df['cleaned text']:
+    tweet = re.sub("RT @[A-Za-z0-9]+","",tweet) #Remove @ sign
+    ##Here's where all the cleaning takes place
+    clean_tweets.append(tweet)
+df['cleaned text'] = clean_tweets
+df.drop_duplicates(subset ="cleaned text",
+                     keep = False, inplace = True)
 
-positive = percentage(positive, noOfTweet)
-negative = percentage(negative, noOfTweet)
-neutral = percentage(neutral, noOfTweet)
-polarity = percentage(polarity, noOfTweet)
-
-positive = format(positive, '.1f')
-negative = format(negative, '.1f')
-neutral = format(neutral, '.1f')
-
-#Creating PieCart
-
-labels = ['Positive ['+str(positive)+'%]' , 'Neutral ['+str(neutral)+'%]','Negative ['+str(negative)+'%]']
-sizes = [positive, neutral, negative]
-colors = ['yellowgreen', 'gold','red']
-
-patches, texts = plt.pie(sizes,colors=colors, startangle=90)
-plt.style.use('default')
-plt.legend(patches, labels, loc='best')
-plt.title("Sentiment Analysis Result for keyword=  "+keyword+"" )
-plt.axis('equal')
-plt.show()
+#Specify location
+#Calculating Negative, Positive, Neutral and Compound values
+df[['polarity', 'subjectivity']] = df['cleaned text'].apply(lambda Text: pd.Series(TextBlob(Text).sentiment))
+for index, row in df['cleaned text'].iteritems():
+    sia= SentimentIntensityAnalyzer()
+    df['rating'] = df['cleaned text'].apply(sia.polarity_scores)
+    pd.concat([df.drop(['rating'], axis=1), df['rating'].apply(pd.Series)], axis=1)
+print(df)
+value_list = df['rating'] 
+list(value_list)
+objs = [df['rating'], pd.DataFrame(df['rating'].tolist()).iloc[ 0:-1]]
+df_value = pd.concat(objs, axis=1).drop('rating', axis=1)
+totaltot =(df["cleaned text"].count())
+print("Total value is:", totaltot)
+totalpos=len(df[df.polarity > 0]) # positive values
+totalneg=len(df[df.polarity<0]) # negative values
+print("Total positive value is:", totalpos)
+print("Total negative value is:", totalneg)
+totalneut = totaltot-(totalpos+totalneg)   # subtract the top values from the bottom combined
+print("Total neutral value is:", totalneut)
+negneg= df_value['neg'].sum()
+print("Sub value of negative sentiment combined:",negneg)
+neuneu=df_value['neu'].sum()
+print("Sub value of neutral tweets:",neuneu)
+pospos=df_value['pos'].sum()
+print("Sub value of positive tweets:",pospos)
+subcomp=df_value['compound'].sum()
+print("sub value of compound values:",subcomp)
+df['character count'] = df['cleaned text'].str.len()
+df['character count']
+totalchar=df['character count'].sum()
+avgchar=(totalchar/totaltot)
+print("Average character per tweet is:", avgchar)
+compvalue=(subcomp/totaltot*100)+(pospos/totaltot*100)-(negneg/totaltot*100)+(avgchar/100)
+compvalue
+if (compvalue >=13):
+print ("Ethereum will increase in price")
+elif( (totalpos/totaltot) >.4):
+print ("Ethereum will increase in price")
+elif(pospos>totaltot):
+print("Ethereum will increase in price")
+elif ((neuneu/totaltot)>.9):
+print("Data is inconclusive")
+elif (compvalue <= 13):
+print ("Ethereum will decerase in price")
